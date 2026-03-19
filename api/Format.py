@@ -3,7 +3,7 @@
 from pydantic import BaseModel, Field
 from typing import Literal
 
-class DataInput(BaseModel):
+class DataRequest(BaseModel):
     age: int = Field(..., ge=0, le=120, description="Age of the Patient")
     sex: Literal["male", "female"]
     bmi: float = Field(..., ge=0, le=100, description="Body Mass Index")
@@ -11,6 +11,6 @@ class DataInput(BaseModel):
     children: int = Field(..., ge=0, le=20, description="Number of Children")
     region: Literal["northeast", "northwest", "southeast", "southwest"]
 
-class PredictionOutput(BaseModel):
+class PredictionResponse(BaseModel):
     PredictedCost: float = Field(..., ge=0, description="Predicted Insurance Cost")
     
