@@ -6,7 +6,7 @@ def FeatureEngineering(PatientData: dict) -> pd.DataFrame:
     data = PatientData.model_dump()
     df = pd.DataFrame([PatientData])
 
-    #Feature Engineering
+    #Feature Engineeringg
     df['smoker_yes'] = df['smoker'] == 'yes'
     df['bmi_smoker'] = df['bmi'] * df['smoker_yes']
     df["age_smoker"] = df["age"] * df["smoker_yes"]
