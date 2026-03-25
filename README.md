@@ -1,3 +1,3 @@
 # Medical Insurance Prediction
 
-Medical Insurance Prediction usig Interpretable Machine Learning
+Medical Insurance Prediction using Interpretable Machine Learning
