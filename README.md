@@ -1,3 +1,3 @@
-#Our Project repo
+# Medical Insurance Prediction
 
-Sheeeesha
+Medical Insurance Prediction usig Interpretable Machine Learning
