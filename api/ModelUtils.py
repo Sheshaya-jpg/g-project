@@ -1,16 +1,16 @@
 # Data Analysis and Machine Learning utilities for the insurance model API
 import pandas as pd
+from api.Format import DataRequest
 
-def FeatureEngineering(PatientData: dict) -> pd.DataFrame:
-    # Covert to DataFrame for processing
-    data = PatientData.model_dump()
-    df = pd.DataFrame([PatientData])
+def feature_engineering(patient: DataRequest) -> pd.DataFrame:
+    # Convert request object to DataFrame for processing
+    df = pd.DataFrame([patient.model_dump()])
 
-    #Feature Engineeringg
-    df['smoker_yes'] = df['smoker'] == 'yes'
+    # Feature engineering
+    df['smoker_yes'] = (df['smoker'] == 'yes').astype(int)
     df['bmi_smoker'] = df['bmi'] * df['smoker_yes']
-    df["age_smoker"] = df["age"] * df["smoker_yes"]
-    df["age_bmi"] = df["age"] * df["bmi"]
-    df["no_children"] = df["children"] + 1 
-    
+    df['age_smoker'] = df['age'] * df['smoker_yes']
+    df['bmi_age'] = df['bmi'] * df['age']
+    df['no_children'] = (df['children'] == 0).astype(int)
+
     return df

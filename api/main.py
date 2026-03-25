@@ -1,5 +1,4 @@
 # main file for the API
-
 import sys
 import os
 import joblib
@@ -9,52 +8,60 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from api.Format import DataRequest, PredictionResponse
-from api.ModelUtils import FeatureEngineering
-from api import CostumModel
+from api.ModelUtils import feature_engineering
+import api.CostumModel
 
-# map the model to the main module for pickling
-sys.modules["__main__"] = CostumModel
-
-# hold model in memory
-ModelComponent = {}
+sys.modules['__main__'] = api.CostumModel  # Ensure the custom model is available in the main namespace for joblib loading
+model_component = {} # hold model in memory
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    BaseDirectory = os.path.dirname(os.path.abspath(__file__))
-    ModelPath = os.path.join(BaseDirectory, "model.joblib")
-    PreprocessorPath = os.path.join(BaseDirectory, "preprocessor.joblib")
+    
+    
+    base_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Move up to d:\sen-proj
+    model_path = os.path.join(base_directory, "model", "insurance_gbmodel.pkl")
+    preprocessor_path = os.path.join(base_directory, "model", "insurance_preprocessor.pkl")
 
     try:
-        ModelComponent["model"] = joblib.load(ModelPath)
-        ModelComponent["preprocessor"] = joblib.load(PreprocessorPath)
+        model_component["InsuranceModel"] = joblib.load(model_path)
+        model_component["InsurancePreprocessor"] = joblib.load(preprocessor_path)
         print("Model and Preprocessor loaded successfully.")
     except FileNotFoundError as err:
         print(f"Error loading files: {err}")
+        raise
 
-    yield                                               #runnig the API
-    ModelComponent.clear()                              #clear the model from memory when API is shutdown
+    yield  # running the API
+    model_component.clear()  # clear the model from memory when API is shutdown
 
-    App = FastAPI(
-        title="Medical Insurance Prediction",
-        lifespan=lifespan)
-    App.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+app = FastAPI(
+    title="Medical Insurance Prediction",
+    lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    @App.get("/")
-    def HealthCheck():
-        return {"Status": "Active",
-                "Message": "API is running and ready to accept requests.",
-                "ModelStatus": "Model" in ModelComponent and "preprocessor" in ModelComponent
-                }
+@app.get("/") # Health Check endpoint
+async def check():
+    return {"Status": "Active",
+            "Message": "API is running and ready to accept requests.",
+            "ModelStatus": "InsuranceModel" in model_component and "InsurancePreprocessor" in model_component
+            }
+   
+@app.post("/predict", response_model=PredictionResponse) # prediction endpoint
+async def predict(patient_data: DataRequest):
+    if "InsuranceModel" not in model_component or "InsurancePreprocessor" not in model_component:
+        raise HTTPException(status_code=503, detail="Model or Preprocessor not loaded")
 
-
-
-
-
-
- 
+    try:
+        df = feature_engineering(patient_data)
+        X = model_component["InsurancePreprocessor"].transform(df)
+        predicted_cost = model_component["InsuranceModel"].predict(X)[0]
+        return PredictionResponse(PredictedCost=predicted_cost)
+    except ValueError as verr:
+        raise HTTPException(status_code=400, detail=f"Invalid input data: {verr}")
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"Prediction error: {err}")
